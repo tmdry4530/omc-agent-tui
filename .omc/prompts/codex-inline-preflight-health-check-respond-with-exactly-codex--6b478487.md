@@ -1,0 +1,1 @@
+Preflight health check. Respond with exactly: "CODEX_OK" and nothing else.

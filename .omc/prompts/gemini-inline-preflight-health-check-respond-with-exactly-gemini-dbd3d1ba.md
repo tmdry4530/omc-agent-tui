@@ -1,0 +1,1 @@
+Preflight health check. Respond with exactly: "GEMINI_OK" and nothing else.
