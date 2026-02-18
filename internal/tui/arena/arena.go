@@ -303,11 +303,27 @@ func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 	// Top border
 	lines = append(lines, boxTop(borderStyle))
 
-	// 3-line CLCO sprite, centered
+	// 3-line CLCO sprite, block-centered with uniform x-anchor
 	sprite := GetSprite(useUnicode)
+	maxW := 0
+	for _, line := range sprite {
+		if w := len([]rune(line)); w > maxW {
+			maxW = w
+		}
+	}
+	leftPad := (cardContentWidth - maxW) / 2
+	if leftPad < 0 {
+		leftPad = 0
+	}
+	prefix := strings.Repeat(" ", leftPad)
 	for _, spriteLine := range sprite {
-		centered := PadCenter(spriteLine, cardContentWidth)
-		lines = append(lines, boxLine(spriteStyle.Render(centered), borderStyle))
+		runes := []rune(spriteLine)
+		rightPad := maxW - len(runes)
+		if rightPad < 0 {
+			rightPad = 0
+		}
+		aligned := prefix + string(runes) + strings.Repeat(" ", rightPad)
+		lines = append(lines, boxLine(spriteStyle.Render(aligned), borderStyle))
 	}
 
 	// Role + indicator

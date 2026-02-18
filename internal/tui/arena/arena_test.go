@@ -855,6 +855,19 @@ func TestRenderCard_Snapshot(t *testing.T) {
 			t.Errorf("Line %d rune width: expected %d, got %d: %q", i, cardTotalWidth, w, line)
 		}
 	}
+
+	// Sprite lines 1-3 must share the same x-anchor (uniform prefix before sprite block)
+	// prefix = (cardContentWidth - SpriteWidth) / 2 spaces after "│ "
+	expectedPrefix := (cardContentWidth - SpriteWidth) / 2
+	for i := 1; i <= 3; i++ {
+		inner := []rune(lines[i])
+		// After "│ " (2 runes), next expectedPrefix runes must be spaces
+		for j := 2; j < 2+expectedPrefix; j++ {
+			if inner[j] != ' ' {
+				t.Errorf("Line %d: expected space at rune %d for prefix, got %c", i, j, inner[j])
+			}
+		}
+	}
 }
 
 func TestRenderCard_Snapshot_EmptySummary(t *testing.T) {
