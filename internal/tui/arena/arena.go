@@ -8,6 +8,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Card dimensions
+const (
+	cardTotalWidth   = 26 // total rendered width including borders
+	cardInnerWidth   = 24 // between │ borders
+	cardContentWidth = 22 // innerWidth - 2 padding spaces
+)
+
 // palette.md colors
 var roleColors = map[schema.Role]string{
 	schema.RolePlanner:   "#7AA2F7",
@@ -178,9 +185,8 @@ func (m Model) View() string {
 		cards = append(cards, renderCard(agent, isSelected, m.unicode))
 	}
 
-	// Join cards horizontally if space allows, otherwise vertically
-	cardWidth := 28
-	maxHorizontal := m.width / cardWidth
+	// Join cards horizontally if space allows
+	maxHorizontal := m.width / cardTotalWidth
 	if maxHorizontal < 1 {
 		maxHorizontal = 1
 	}
@@ -213,13 +219,35 @@ func (m Model) View() string {
 	return style.Render(title + "\n" + content)
 }
 
-// renderCard renders a single agent card with CLCO sprite.
+// boxTop returns the top border of a card box.
+func boxTop(borderStyle lipgloss.Style) string {
+	return borderStyle.Render("╭" + strings.Repeat("─", cardInnerWidth) + "╮")
+}
+
+// boxBottom returns the bottom border of a card box.
+func boxBottom(borderStyle lipgloss.Style) string {
+	return borderStyle.Render("╰" + strings.Repeat("─", cardInnerWidth) + "╯")
+}
+
+// boxLine renders a content line wrapped in │ ... │ with right-padding.
+// styledContent is already styled (may contain ANSI codes).
+// The visual width is measured with lipgloss.Width and padded to cardContentWidth.
+func boxLine(styledContent string, borderStyle lipgloss.Style) string {
+	visWidth := lipgloss.Width(styledContent)
+	pad := cardContentWidth - visWidth
+	if pad < 0 {
+		pad = 0
+	}
+	return borderStyle.Render("│") + " " + styledContent + strings.Repeat(" ", pad) + " " + borderStyle.Render("│")
+}
+
+// renderCard renders a single agent card with CLCO sprite in fixed-width box.
 func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 	roleColor := getRoleColor(card.Role)
 	stateColor := getStateColor(card.State)
 	indicator := GetStateIndicator(card.State, useUnicode)
 
-	// Card border color based on state
+	// Border color based on state
 	borderColor := "#2A3142"
 	if selected {
 		borderColor = "#58A6FF"
@@ -230,6 +258,8 @@ func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 	if card.State == schema.StateBlocked {
 		borderColor = "#E3B341"
 	}
+
+	borderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(borderColor))
 
 	// Sprite tint: role color by default, override for error/done states
 	spriteColor := roleColor
@@ -259,61 +289,66 @@ func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 		Foreground(lipgloss.Color(stateColor)).
 		Bold(card.State == schema.StateRunning)
 
-	// Build card content
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#8A93A5")).
+		Bold(true)
+
+	summaryStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#8A93A5")).
+		Italic(true)
+
+	// Build card lines
 	var lines []string
 
-	// 3-line CLCO sprite, centered in card content area (card width 26 - 2 border - 2 padding = 22)
-	contentWidth := 22
+	// Top border
+	lines = append(lines, boxTop(borderStyle))
+
+	// 3-line CLCO sprite, centered
 	sprite := GetSprite(useUnicode)
-	for _, line := range sprite {
-		centered := PadCenter(line, contentWidth)
-		lines = append(lines, spriteStyle.Render(centered))
+	for _, spriteLine := range sprite {
+		centered := PadCenter(spriteLine, cardContentWidth)
+		lines = append(lines, boxLine(spriteStyle.Render(centered), borderStyle))
 	}
 
 	// Role + indicator
-	lines = append(lines, fmt.Sprintf("%s %s",
+	roleStr := fmt.Sprintf("%s %s",
 		roleStyle.Render(string(card.Role)),
 		indicatorStyle.Render(indicator),
-	))
+	)
+	lines = append(lines, boxLine(roleStr, borderStyle))
 
 	// Agent ID
-	lines = append(lines, idStyle.Render(truncate(card.AgentID, 22)))
+	lines = append(lines, boxLine(idStyle.Render(truncate(card.AgentID, cardContentWidth)), borderStyle))
 
 	// State
-	lines = append(lines, stateStyle.Render(string(card.State)))
+	lines = append(lines, boxLine(stateStyle.Render(string(card.State)), borderStyle))
 
-	// Summary (if present)
-	if card.Summary != "" {
-		summaryStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#8A93A5")).
-			Italic(true)
-		lines = append(lines, summaryStyle.Render(truncate(card.Summary, 22)))
+	// Recent activity label
+	lines = append(lines, boxLine(labelStyle.Render("Recent activity"), borderStyle))
+
+	// Summary
+	summary := card.Summary
+	if summary == "" {
+		summary = "-"
 	}
+	lines = append(lines, boxLine(summaryStyle.Render(truncate(summary, cardContentWidth)), borderStyle))
 
-	content := strings.Join(lines, "\n")
+	// Bottom border
+	lines = append(lines, boxBottom(borderStyle))
 
-	cardStyle := lipgloss.NewStyle().
-		Width(26).
-		Padding(0, 1).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color(borderColor))
-
-	if selected {
-		cardStyle = cardStyle.Bold(true)
-	}
-
-	return cardStyle.Render(content)
+	return strings.Join(lines, "\n")
 }
 
 // truncate shortens a string to maxLen with ellipsis.
 func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
 		return s
 	}
 	if maxLen <= 3 {
-		return s[:maxLen]
+		return string(runes[:maxLen])
 	}
-	return s[:maxLen-3] + "..."
+	return string(runes[:maxLen-3]) + "..."
 }
 
 // getRoleColor returns the palette.md color for each role.
@@ -372,4 +407,24 @@ func getStateStyle(state schema.AgentState) lipgloss.Style {
 	default:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#8A93A5"))
 	}
+}
+
+// StripAnsi removes ANSI escape codes from a string for testing.
+func StripAnsi(s string) string {
+	var result []byte
+	inEsc := false
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\x1b' {
+			inEsc = true
+			continue
+		}
+		if inEsc {
+			if (s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') {
+				inEsc = false
+			}
+			continue
+		}
+		result = append(result, s[i])
+	}
+	return string(result)
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/chamdom/omc-agent-tui/pkg/schema"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func TestNewModel(t *testing.T) {
@@ -696,6 +697,206 @@ func TestGetStateIndicator_UnknownState(t *testing.T) {
 	}
 	if ascii == "" {
 		t.Error("Expected non-empty ASCII default indicator")
+	}
+}
+
+// Box helper tests
+
+func TestBoxTop(t *testing.T) {
+	borderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#2A3142"))
+	result := StripAnsi(boxTop(borderStyle))
+	if result != "╭"+strings.Repeat("─", cardInnerWidth)+"╮" {
+		t.Errorf("boxTop mismatch: got %q", result)
+	}
+	// Verify rune width
+	runes := []rune(result)
+	if len(runes) != cardTotalWidth {
+		t.Errorf("boxTop rune width: expected %d, got %d", cardTotalWidth, len(runes))
+	}
+}
+
+func TestBoxBottom(t *testing.T) {
+	borderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#2A3142"))
+	result := StripAnsi(boxBottom(borderStyle))
+	if result != "╰"+strings.Repeat("─", cardInnerWidth)+"╯" {
+		t.Errorf("boxBottom mismatch: got %q", result)
+	}
+	runes := []rune(result)
+	if len(runes) != cardTotalWidth {
+		t.Errorf("boxBottom rune width: expected %d, got %d", cardTotalWidth, len(runes))
+	}
+}
+
+func TestBoxLine(t *testing.T) {
+	borderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#2A3142"))
+	// Plain text, no ANSI in content itself
+	result := StripAnsi(boxLine("hello", borderStyle))
+	// Should be: │ hello                 │
+	// "hello" = 5 chars, pad = 22-5 = 17 spaces
+	expected := "│ hello" + strings.Repeat(" ", 17) + " │"
+	if result != expected {
+		t.Errorf("boxLine mismatch:\n  got:  %q\n  want: %q", result, expected)
+	}
+	runes := []rune(result)
+	if len(runes) != cardTotalWidth {
+		t.Errorf("boxLine rune width: expected %d, got %d", cardTotalWidth, len(runes))
+	}
+}
+
+func TestBoxLine_EmptyContent(t *testing.T) {
+	borderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#2A3142"))
+	result := StripAnsi(boxLine("", borderStyle))
+	expected := "│ " + strings.Repeat(" ", cardContentWidth) + " │"
+	if result != expected {
+		t.Errorf("boxLine empty mismatch:\n  got:  %q\n  want: %q", result, expected)
+	}
+}
+
+func TestBoxLine_MaxWidthContent(t *testing.T) {
+	borderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#2A3142"))
+	content := strings.Repeat("x", cardContentWidth)
+	result := StripAnsi(boxLine(content, borderStyle))
+	expected := "│ " + content + " │"
+	if result != expected {
+		t.Errorf("boxLine max width mismatch:\n  got:  %q\n  want: %q", result, expected)
+	}
+}
+
+func TestStripAnsi(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"hello", "hello"},
+		{"\x1b[31mred\x1b[0m", "red"},
+		{"\x1b[1m\x1b[32mbold green\x1b[0m", "bold green"},
+		{"no escape", "no escape"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		result := StripAnsi(tt.input)
+		if result != tt.expected {
+			t.Errorf("StripAnsi(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}
+
+// Snapshot test: verify card render structure
+func TestRenderCard_Snapshot(t *testing.T) {
+	card := &AgentCard{
+		AgentID: "agent-001",
+		Role:    schema.RoleExecutor,
+		State:   schema.StateRunning,
+		Summary: "task spawned",
+	}
+	result := renderCard(card, false, true)
+	stripped := StripAnsi(result)
+	lines := strings.Split(stripped, "\n")
+
+	// Card should have exactly 10 lines:
+	// 0: top border (╭─...─╮)
+	// 1-3: sprite (3 lines)
+	// 4: role + indicator
+	// 5: agent ID
+	// 6: state
+	// 7: "Recent activity" label
+	// 8: summary
+	// 9: bottom border (╰─...─╯)
+	if len(lines) != 10 {
+		t.Fatalf("Expected 10 lines, got %d:\n%s", len(lines), stripped)
+	}
+
+	// Line 0: top border
+	if !strings.HasPrefix(lines[0], "╭") || !strings.HasSuffix(lines[0], "╮") {
+		t.Errorf("Line 0 should be top border, got %q", lines[0])
+	}
+
+	// Lines 1-3: sprite lines wrapped in │ ... │
+	for i := 1; i <= 3; i++ {
+		if !strings.HasPrefix(lines[i], "│") || !strings.HasSuffix(lines[i], "│") {
+			t.Errorf("Line %d should be boxed sprite, got %q", i, lines[i])
+		}
+	}
+
+	// Line 4: role + indicator
+	if !strings.Contains(lines[4], "executor") {
+		t.Errorf("Line 4 should contain role, got %q", lines[4])
+	}
+
+	// Line 5: agent ID
+	if !strings.Contains(lines[5], "agent-001") {
+		t.Errorf("Line 5 should contain agent ID, got %q", lines[5])
+	}
+
+	// Line 6: state
+	if !strings.Contains(lines[6], "running") {
+		t.Errorf("Line 6 should contain state, got %q", lines[6])
+	}
+
+	// Line 7: "Recent activity" label
+	if !strings.Contains(lines[7], "Recent activity") {
+		t.Errorf("Line 7 should contain 'Recent activity', got %q", lines[7])
+	}
+
+	// Line 8: summary
+	if !strings.Contains(lines[8], "task spawned") {
+		t.Errorf("Line 8 should contain summary, got %q", lines[8])
+	}
+
+	// Line 9: bottom border
+	if !strings.HasPrefix(lines[9], "╰") || !strings.HasSuffix(lines[9], "╯") {
+		t.Errorf("Line 9 should be bottom border, got %q", lines[9])
+	}
+
+	// All lines should have the same rune width (cardTotalWidth)
+	for i, line := range lines {
+		w := len([]rune(line))
+		if w != cardTotalWidth {
+			t.Errorf("Line %d rune width: expected %d, got %d: %q", i, cardTotalWidth, w, line)
+		}
+	}
+}
+
+func TestRenderCard_Snapshot_EmptySummary(t *testing.T) {
+	card := &AgentCard{
+		AgentID: "agent-002",
+		Role:    schema.RolePlanner,
+		State:   schema.StateIdle,
+		Summary: "",
+	}
+	result := renderCard(card, false, true)
+	stripped := StripAnsi(result)
+
+	// Empty summary should show "-"
+	if !strings.Contains(stripped, "-") {
+		t.Error("Expected '-' for empty summary")
+	}
+	if !strings.Contains(stripped, "Recent activity") {
+		t.Error("Expected 'Recent activity' label")
+	}
+}
+
+func TestRenderCard_Snapshot_ASCII(t *testing.T) {
+	card := &AgentCard{
+		AgentID: "agent-003",
+		Role:    schema.RoleReviewer,
+		State:   schema.StateDone,
+		Summary: "review complete",
+	}
+	result := renderCard(card, false, false)
+	stripped := StripAnsi(result)
+	lines := strings.Split(stripped, "\n")
+
+	if len(lines) != 10 {
+		t.Fatalf("Expected 10 lines in ASCII mode, got %d", len(lines))
+	}
+
+	// All lines should have cardTotalWidth rune width
+	for i, line := range lines {
+		w := len([]rune(line))
+		if w != cardTotalWidth {
+			t.Errorf("ASCII line %d rune width: expected %d, got %d: %q", i, cardTotalWidth, w, line)
+		}
 	}
 }
 
