@@ -213,14 +213,13 @@ func (m Model) View() string {
 	return style.Render(title + "\n" + content)
 }
 
-// renderCard renders a single agent card with mascot sprite.
+// renderCard renders a single agent card with CLCO sprite.
 func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 	roleColor := getRoleColor(card.Role)
 	stateColor := getStateColor(card.State)
-	mascot := GetMascot(card.Role)
 	indicator := GetStateIndicator(card.State, useUnicode)
 
-	// Card border style
+	// Card border color based on state
 	borderColor := "#2A3142"
 	if selected {
 		borderColor = "#58A6FF"
@@ -230,6 +229,21 @@ func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 	}
 	if card.State == schema.StateBlocked {
 		borderColor = "#E3B341"
+	}
+
+	// Sprite tint: role color by default, override for error/done states
+	spriteColor := roleColor
+	if card.State == schema.StateError || card.State == schema.StateFailed {
+		spriteColor = "#FF7B72"
+	}
+	if card.State == schema.StateDone {
+		spriteColor = "#56D364"
+	}
+
+	spriteStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(spriteColor))
+	if card.State == schema.StateWaiting || card.State == schema.StateIdle {
+		spriteStyle = spriteStyle.Faint(true)
 	}
 
 	roleStyle := lipgloss.NewStyle().
@@ -248,15 +262,10 @@ func renderCard(card *AgentCard, selected bool, useUnicode bool) string {
 	// Build card content
 	var lines []string
 
-	// Mascot sprite line
-	mascotStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(roleColor))
-	if useUnicode && len(mascot.Unicode) > 0 {
-		for _, line := range mascot.Unicode {
-			lines = append(lines, mascotStyle.Render(line))
-		}
-	} else {
-		lines = append(lines, mascotStyle.Render(mascot.ASCII))
+	// 3-line CLCO sprite
+	sprite := GetSprite(useUnicode)
+	for _, line := range sprite {
+		lines = append(lines, spriteStyle.Render(line))
 	}
 
 	// Role + indicator

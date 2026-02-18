@@ -537,35 +537,44 @@ func TestTruncate(t *testing.T) {
 	}
 }
 
-// Mascot tests
+// Sprite tests
 
-func TestGetMascot_KnownRoles(t *testing.T) {
-	roles := []schema.Role{
-		schema.RolePlanner, schema.RoleExecutor, schema.RoleReviewer,
-		schema.RoleGuard, schema.RoleTester, schema.RoleWriter,
-		schema.RoleExplorer, schema.RoleArchitect, schema.RoleDebugger,
-		schema.RoleVerifier, schema.RoleDesigner, schema.RoleCustom,
+func TestGetSprite_Unicode(t *testing.T) {
+	sprite := GetSprite(true)
+	if len(sprite) != 3 {
+		t.Fatalf("Expected 3 lines, got %d", len(sprite))
 	}
-	for _, role := range roles {
-		t.Run(string(role), func(t *testing.T) {
-			sprite := GetMascot(role)
-			if len(sprite.Unicode) == 0 {
-				t.Error("Expected non-empty unicode sprite")
-			}
-			if sprite.ASCII == "" {
-				t.Error("Expected non-empty ASCII fallback")
-			}
-		})
+	// Verify exact sprite lines
+	expected := SpriteLines
+	for i, line := range sprite {
+		if line != expected[i] {
+			t.Errorf("Line %d: expected %q, got %q", i, expected[i], line)
+		}
+	}
+	// Line 1: ▐▛███▜▌
+	if sprite[0] != "\u2590\u259B\u2588\u2588\u2588\u259C\u258C" {
+		t.Errorf("Sprite line 0 mismatch: %q", sprite[0])
 	}
 }
 
-func TestGetMascot_UnknownRole(t *testing.T) {
-	sprite := GetMascot(schema.Role("unknown"))
-	if len(sprite.Unicode) == 0 {
-		t.Error("Expected default unicode sprite")
+func TestGetSprite_ASCII(t *testing.T) {
+	sprite := GetSprite(false)
+	if len(sprite) != 3 {
+		t.Fatalf("Expected 3 lines, got %d", len(sprite))
 	}
-	if sprite.ASCII != "[?]" {
-		t.Errorf("Expected default ASCII [?], got %q", sprite.ASCII)
+	expected := ASCIIFallback
+	for i, line := range sprite {
+		if line != expected[i] {
+			t.Errorf("Line %d: expected %q, got %q", i, expected[i], line)
+		}
+	}
+}
+
+func TestGetSprite_FallbackSwitch(t *testing.T) {
+	unicode := GetSprite(true)
+	ascii := GetSprite(false)
+	if unicode[0] == ascii[0] {
+		t.Error("Unicode and ASCII sprites should differ")
 	}
 }
 
