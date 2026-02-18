@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/chamdom/omc-agent-tui/internal/bridge"
 	"github.com/chamdom/omc-agent-tui/internal/collector"
 	"github.com/chamdom/omc-agent-tui/internal/normalizer"
 	"github.com/chamdom/omc-agent-tui/internal/replay"
@@ -20,7 +22,18 @@ import (
 func main() {
 	watchPath := flag.String("watch", "", "Directory to watch for JSONL event files")
 	replayFile := flag.String("replay", "", "JSONL file to replay")
+	convertFile := flag.String("convert", "", "Convert subagent-tracking.json to JSONL (output to stdout or -o)")
+	convertOut := flag.String("o", "", "Output path for --convert (default: stdout)")
 	flag.Parse()
+
+	// Convert mode: non-TUI, converts tracking file and exits
+	if *convertFile != "" {
+		if err := runConvert(*convertFile, *convertOut); err != nil {
+			fmt.Fprintf(os.Stderr, "Convert error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	s := store.NewStore(10000)
 	m := tui.NewModel(s)
@@ -114,6 +127,27 @@ func startReplay(p *tea.Program, filePath string) error {
 		}
 	}()
 
+	return nil
+}
+
+// runConvert converts a subagent-tracking.json file to JSONL.
+func runConvert(trackingPath, outputPath string) error {
+	events, err := bridge.ConvertTracking(trackingPath)
+	if err != nil {
+		return err
+	}
+
+	if outputPath != "" {
+		return bridge.WriteEventsFile(outputPath, events)
+	}
+
+	// Write to stdout
+	enc := json.NewEncoder(os.Stdout)
+	for _, evt := range events {
+		if err := enc.Encode(evt); err != nil {
+			return fmt.Errorf("encode event: %w", err)
+		}
+	}
 	return nil
 }
 

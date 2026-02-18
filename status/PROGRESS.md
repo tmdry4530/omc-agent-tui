@@ -1,8 +1,22 @@
 # PROGRESS
 
 ## 현재 상태
-- Phase: 2 (Execution) → v0.1.0-beta + CLCO Arena 구현 완료
-- 테스트: 154 tests (12 파일, 11 패키지) PASS, BUILD OK, RACE 0
+- Phase: 2 (Execution) → v0.1.0-beta + CLCO Arena + OMC Bridge 구현 완료
+- 테스트: 170+ tests (13 파일, 12 패키지) PASS, BUILD OK, RACE 0
+
+## 세션 7 완료 (OMC Bridge 실시간 동기화)
+- [x] internal/bridge 패키지: tracking.go (변환기) + emitter.go (이벤트 발행)
+- [x] subagent-tracking.json → CanonicalEvent JSONL 변환 (21 에이전트 → 42 이벤트)
+- [x] 이벤트 팩토리: NewSpawnEvent, NewUpdateEvent, NewDoneEvent, NewErrorEvent
+- [x] EmitEvent: .omc/events/<session>.jsonl JSONL append
+- [x] --convert 플래그: tracking 파일 → JSONL 변환 CLI
+- [x] OMC hook 스크립트: scripts/omc-bridge-hook.sh (Task/TaskUpdate/SendMessage 감지)
+- [x] CanonicalEvent 스키마 100% 준수 (Validate 통과)
+- [x] spawn/update/done/error 4종 이벤트 매핑
+- [x] 역할 매핑: oh-my-claudecode:* → schema.Role (LookupRole 연동)
+- [x] 모드 매핑: parent_mode → schema.Mode
+- [x] bridge 테스트 14개 신규
+- [x] 전체 테스트 PASS, BUILD OK, RACE 0
 
 ## 세션 6 완료 (CLCO 마스코트 Agent Arena)
 - [x] Arena 패널 전면 리팩토링 (mascot sprites, palette colors, selection, focus)

@@ -21,6 +21,14 @@
 - [x] 테스트 32개 추가 (154 total)
 - [x] 데모 이벤트 확장 (8 에이전트, 다양한 상태)
 
+## 완료 (세션 7 — OMC Bridge 실시간 동기화)
+- [x] internal/bridge 패키지 (tracking 변환 + event emitter)
+- [x] --convert 플래그 (subagent-tracking.json → JSONL)
+- [x] OMC hook 스크립트 (scripts/omc-bridge-hook.sh)
+- [x] spawn/update/done/error 4종 이벤트 매핑
+- [x] CanonicalEvent 스키마 100% 준수
+- [x] bridge 테스트 14개 추가
+
 ## v0.2.0 (다음 릴리즈)
 1. Timeline → Inspector Enter 키 연동
 2. Replay TUI 컨트롤 (Space 일시정지, +/- 속도)
