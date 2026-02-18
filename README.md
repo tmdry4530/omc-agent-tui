@@ -55,7 +55,7 @@ go build -o bin/omc-tui ./cmd/omc-tui
 
 ## Requirements
 
-- Go 1.23 or higher
+- Go 1.24 or higher
 - Terminal with Unicode and 256-color support
 - `jq` (optional, for hook script)
 
