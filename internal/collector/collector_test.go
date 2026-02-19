@@ -61,7 +61,7 @@ func TestFileCollector_NewLines(t *testing.T) {
 		_, _ = f.Write([]byte("\n"))
 	}
 	_ = f.Sync()
-	f.Close()
+	_ = f.Close()
 
 	// Drain expected events
 	got, err := drainEvents(ctx, fc, len(testData))
@@ -100,7 +100,7 @@ func TestFileCollector_InvalidJSON(t *testing.T) {
 	_, _ = f.Write([]byte("another invalid\n"))
 	_, _ = f.Write([]byte(`{"also": "valid"}` + "\n"))
 	_ = f.Sync()
-	f.Close()
+	_ = f.Close()
 
 	// Only valid JSON lines should be received (2 out of 4)
 	got, err := drainEvents(ctx, fc, 2)
@@ -175,7 +175,7 @@ func TestFileCollector_AppendToFile(t *testing.T) {
 	}
 	_, _ = f.Write([]byte(`{"line": 1}` + "\n"))
 	_ = f.Sync()
-	f.Close()
+	_ = f.Close()
 
 	// Receive first event
 	got, err := drainEvents(ctx, fc, 1)
@@ -190,7 +190,7 @@ func TestFileCollector_AppendToFile(t *testing.T) {
 	}
 	_, _ = f.Write([]byte(`{"line": 2}` + "\n"))
 	_ = f.Sync()
-	f.Close()
+	_ = f.Close()
 
 	// Receive second event
 	select {

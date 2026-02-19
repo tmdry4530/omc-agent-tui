@@ -189,19 +189,19 @@ func (m *Model) renderEvent() string {
 
 		if e.Metrics.LatencyMs != nil {
 			b.WriteString(labelStyle.Render("Latency:   "))
-			b.WriteString(fmt.Sprintf("%.0fms", *e.Metrics.LatencyMs))
+			fmt.Fprintf(&b, "%.0fms", *e.Metrics.LatencyMs)
 			b.WriteString("\n")
 		}
 
 		if e.Metrics.TokensIn != nil {
 			b.WriteString(labelStyle.Render("Tokens In: "))
-			b.WriteString(fmt.Sprintf("%d", *e.Metrics.TokensIn))
+			fmt.Fprintf(&b, "%d", *e.Metrics.TokensIn)
 			b.WriteString("\n")
 		}
 
 		if e.Metrics.TokensOut != nil {
 			b.WriteString(labelStyle.Render("Tokens Out: "))
-			b.WriteString(fmt.Sprintf("%d", *e.Metrics.TokensOut))
+			fmt.Fprintf(&b, "%d", *e.Metrics.TokensOut)
 			b.WriteString("\n")
 		}
 

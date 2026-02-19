@@ -450,10 +450,7 @@ func TestRenderCard_Selected(t *testing.T) {
 	}
 	selected := renderCard(card, true, true)
 	unselected := renderCard(card, false, true)
-	if selected == unselected {
-		// Selected card should differ (different border color)
-		// This is acceptable if lipgloss doesn't produce visible difference in test
-	}
+	_ = selected == unselected // border color may differ only with ANSI codes
 	if selected == "" {
 		t.Error("Expected non-empty selected card")
 	}
