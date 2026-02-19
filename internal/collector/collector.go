@@ -59,7 +59,7 @@ func (fc *FileCollector) Start(ctx context.Context) error {
 
 	err = watcher.Add(fc.watchPath)
 	if err != nil {
-		watcher.Close()
+		_ = watcher.Close()
 		return fmt.Errorf("경로 감시 추가 실패 (%s): %w", fc.watchPath, err)
 	}
 
@@ -73,7 +73,7 @@ func (fc *FileCollector) Start(ctx context.Context) error {
 	fc.wg.Add(1)
 	go func() {
 		defer fc.wg.Done()
-		defer watcher.Close()
+		defer func() { _ = watcher.Close() }()
 
 		for {
 			select {
@@ -184,7 +184,7 @@ func (fc *FileCollector) readNewLines(filePath string, positions map[string]int6
 	if err != nil {
 		return fmt.Errorf("파일 열기 실패: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// 이전 위치로 이동
 	startPos := positions[filePath]

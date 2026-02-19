@@ -57,8 +57,8 @@ func TestFileCollector_NewLines(t *testing.T) {
 
 	for _, data := range testData {
 		jsonBytes, _ := json.Marshal(data)
-		f.Write(jsonBytes)
-		f.Write([]byte("\n"))
+		_, _ = f.Write(jsonBytes)
+		_, _ = f.Write([]byte("\n"))
 	}
 	f.Sync()
 	f.Close()

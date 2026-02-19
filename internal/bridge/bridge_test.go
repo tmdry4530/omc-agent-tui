@@ -226,8 +226,13 @@ func TestConvertTracking_FileRoundtrip(t *testing.T) {
 
 	dir := t.TempDir()
 	trackingPath := filepath.Join(dir, "subagent-tracking.json")
-	data, _ := json.Marshal(tracking)
-	os.WriteFile(trackingPath, data, 0644)
+	data, err := json.Marshal(tracking)
+	if err != nil {
+		t.Fatalf("marshal tracking: %v", err)
+	}
+	if err := os.WriteFile(trackingPath, data, 0644); err != nil {
+		t.Fatalf("write tracking: %v", err)
+	}
 
 	events, err := ConvertTracking(trackingPath)
 	if err != nil {
@@ -328,7 +333,9 @@ func TestNewErrorEvent(t *testing.T) {
 	}
 
 	var payload map[string]string
-	json.Unmarshal(evt.Payload, &payload)
+	if err := json.Unmarshal(evt.Payload, &payload); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
 	if payload["error"] != "something broke" {
 		t.Errorf("payload error = %q, want 'something broke'", payload["error"])
 	}
@@ -372,8 +379,13 @@ func TestConvertAndWriteRoundtrip(t *testing.T) {
 		},
 	}
 	trackingPath := filepath.Join(dir, "tracking.json")
-	data, _ := json.Marshal(tracking)
-	os.WriteFile(trackingPath, data, 0644)
+	data, err := json.Marshal(tracking)
+	if err != nil {
+		t.Fatalf("marshal tracking: %v", err)
+	}
+	if err := os.WriteFile(trackingPath, data, 0644); err != nil {
+		t.Fatalf("write tracking: %v", err)
+	}
 
 	// Convert
 	events, err := ConvertTracking(trackingPath)
@@ -396,8 +408,12 @@ func TestConvertAndWriteRoundtrip(t *testing.T) {
 
 	// Verify chronological order
 	var first, second schema.CanonicalEvent
-	json.Unmarshal([]byte(lines[0]), &first)
-	json.Unmarshal([]byte(lines[1]), &second)
+	if err := json.Unmarshal([]byte(lines[0]), &first); err != nil {
+		t.Fatalf("unmarshal first: %v", err)
+	}
+	if err := json.Unmarshal([]byte(lines[1]), &second); err != nil {
+		t.Fatalf("unmarshal second: %v", err)
+	}
 	if !first.Ts.Before(second.Ts) {
 		t.Error("events should be in chronological order")
 	}

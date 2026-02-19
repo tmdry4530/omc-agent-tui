@@ -29,7 +29,7 @@ func EmitEvent(eventDir, sessionID string, event schema.CanonicalEvent) error {
 	if err != nil {
 		return fmt.Errorf("open event file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if _, err := f.Write(line); err != nil {
 		return fmt.Errorf("write event: %w", err)
