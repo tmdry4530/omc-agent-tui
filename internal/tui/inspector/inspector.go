@@ -207,7 +207,7 @@ func (m *Model) renderEvent() string {
 
 		if e.Metrics.CostUSD != nil {
 			b.WriteString(labelStyle.Render("Cost:      "))
-			b.WriteString(fmt.Sprintf("$%.4f", *e.Metrics.CostUSD))
+			fmt.Fprintf(&b, "$%.4f", *e.Metrics.CostUSD)
 			b.WriteString("\n")
 		}
 	}
